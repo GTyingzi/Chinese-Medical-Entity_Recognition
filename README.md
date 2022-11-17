@@ -22,8 +22,13 @@
 ```
 
 ## 2 - 模型结构
+
+BERT + Bi-LSTM+ CRF
 ![img.png](images/架构.png)
 
 ## 3 - 实验效果
+BERT + Bi-LSTM+ CRF
+![img.png](images/metric_1.png)
 
-![img.png](images/metric.png)
+BERT + CRF
+![img.png](images/metric_2.png)

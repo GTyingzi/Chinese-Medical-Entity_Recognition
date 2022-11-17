@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import torch
+from datetime import datetime
 from torch.utils import data
 import os
 import warnings
 import argparse
 import numpy as np
 from sklearn import metrics
-from models import Bert_BiLSTM_CRF
+from models import Bert_BiLSTM_CRF,Bert_CRF
 from transformers import AdamW, get_linear_schedule_with_warmup
 from utils import NerDataset, PadBatch, VOCAB, tokenizer, tag2idx, idx2tag
 
@@ -43,7 +44,7 @@ def train(e, model, iterator, optimizer, scheduler, device):
 
     print("Epoch: {}, Loss:{:.4f}".format(e, losses/step))
 
-def validate(e, model, iterator, device):
+def validate(e, model, iterator, device,log_path):
     model.eval()
     Y, Y_hat = [], []
     losses = 0
@@ -72,7 +73,11 @@ def validate(e, model, iterator, device):
     Y_hat = np.array(Y_hat)
     acc = (Y_hat == Y).mean()*100
 
-    print("Epoch: {}, Val Loss:{:.4f}, Val Acc:{:.3f}%".format(e, losses/step, acc))
+    output = "{} Epoch: {}, Val Loss:{:.4f}, Val Acc:{:.3f}%".format(datetime.now(),e, losses/step, acc)
+    print(output)
+    with open(log_path,'a') as f: ## 将训练结果保存到日志中
+        f.write(output + '\n')
+        f.close()
     return model, losses/step, acc
 
 def model_test(model, iterator, device):
@@ -124,12 +129,18 @@ if __name__=="__main__":
     parser.add_argument("--trainset", type=str, default="./CCKS_2019_Task1/processed_data/train_dataset.txt")
     parser.add_argument("--validset", type=str, default="./CCKS_2019_Task1/processed_data/val_dataset.txt")
     parser.add_argument("--testset", type=str, default="./CCKS_2019_Task1/processed_data/test_dataset.txt")
+    # parser.add_argument("--log",type=str,default="./logger/Bert_BiLSTM_CRF/train_acc.txt")
+    parser.add_argument("--log", type=str, default="./logger/Bert_CRF/train_acc.txt")
 
     ner = parser.parse_args()
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    model = Bert_BiLSTM_CRF(tag2idx).cuda()
 
-    print('Initial model Done.')
+    # 选择模型
+    # model = Bert_BiLSTM_CRF(tag2idx).cuda()
+    model = Bert_CRF(tag2idx).cuda()
+    print(f'Initial model:{model.model_name} Done.')
+
+    # 加载数据集
     train_dataset = NerDataset(ner.trainset)
     eval_dataset = NerDataset(ner.validset)
     test_dataset = NerDataset(ner.testset)
@@ -169,7 +180,7 @@ if __name__=="__main__":
     for epoch in range(1, ner.n_epochs+1):
 
         train(epoch, model, train_iter, optimizer, scheduler, device) # 训练模型
-        candidate_model, loss, acc = validate(epoch, model, eval_iter, device) # 验证模型
+        candidate_model, loss, acc = validate(epoch, model, eval_iter, device,ner.log) # 验证模型
 
         if loss < _best_val_loss and acc > _best_val_acc: # 将验证效果最好的模型保保留下来
           best_model = candidate_model
@@ -179,4 +190,11 @@ if __name__=="__main__":
         print("=============================================")
     
     y_true, y_pred = model_test(best_model, test_iter, device) # 真实值和预测值
-    print(metrics.classification_report(y_true, y_pred, labels=labels, digits=3)) # 计算真实值和预测值之间的相关指标
+    output = metrics.classification_report(y_true, y_pred, labels=labels, digits = 3) # 计算真实值和预测值之间的相关指标
+
+    print(output)
+    with open(ner.log,'a') as f: ## 将训练结果保存到日志中
+        f.write(output + '\n')
+        f.close()
+
+

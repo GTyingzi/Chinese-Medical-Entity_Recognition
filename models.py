@@ -9,6 +9,7 @@ class Bert_BiLSTM_CRF(nn.Module):
 
     def __init__(self, tag_to_ix, embedding_dim=768, hidden_dim=256):
         super(Bert_BiLSTM_CRF, self).__init__()
+        self.model_name = "Bert_BiLSTM_CRF"
         self.tag_to_ix = tag_to_ix
         self.tagset_size = len(self.tag_to_ix)
         self.hidden_dim = hidden_dim
@@ -39,4 +40,39 @@ class Bert_BiLSTM_CRF(nn.Module):
         else: # Testing，return decoding
             decode=self.crf.viterbi_decode(emissions, mask)
             return decode
- 
+
+
+
+
+class Bert_CRF(nn.Module):
+
+    def __init__(self, tag_to_ix, embedding_dim=768, hidden_dim=256):
+        super(Bert_CRF, self).__init__()
+        self.model_name = "Bert_CRF"
+        self.tag_to_ix = tag_to_ix
+        self.tagset_size = len(self.tag_to_ix)
+        self.hidden_dim = hidden_dim
+        self.embedding_dim = embedding_dim
+
+        self.bert = BertModel.from_pretrained('bert-base-chinese')
+        self.dropout = nn.Dropout(p=0.1)
+        self.linear = nn.Linear(embedding_dim, self.tagset_size)
+
+        self.crf = CRF(self.tagset_size)
+
+    def _get_features(self, sentence):  # sentence：{batch_size,seq_Len}
+        with torch.no_grad():
+            encoder_output = self.bert(sentence)
+            embeds = encoder_output[0]  # embeds：{batch_size,seq_len,embedding_dim}
+        embeds = self.dropout(embeds)
+        feats = self.linear(embeds)  # feats：{batch_size,seq_len,target_size}
+        return feats
+
+    def forward(self, sentence, tags, mask, is_test=False):  # {batch_size,seq_Len}
+        emissions = self._get_features(sentence)  # 得到特征分数,emissions：{batch_size,seq_len,target_size}
+        if not is_test:  # Training，return loss
+            loss = -self.crf.forward(emissions, tags, mask).mean()
+            return loss
+        else:  # Testing，return decoding
+            decode = self.crf.viterbi_decode(emissions, mask)
+            return decode
