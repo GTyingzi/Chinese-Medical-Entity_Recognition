@@ -1,4 +1,4 @@
-# 中国医疗实体关系基于BERT + Bi-LSTM+ CRF
+# 中文医疗实体关系基于BERT + Bi-LSTM+ CRF
 
 ## 1 - 数据集
 ```
