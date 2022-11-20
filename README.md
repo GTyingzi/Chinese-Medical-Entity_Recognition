@@ -28,7 +28,9 @@ BERT + Bi-LSTM+ CRF
 
 ## 3 - 实验效果
 BERT + Bi-LSTM+ CRF
+
 ![img.png](images/metric_1.png)
 
 BERT + CRF
+
 ![img.png](images/metric_2.png)
