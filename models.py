@@ -20,7 +20,6 @@ class Bert_BiLSTM_CRF(nn.Module):
                             num_layers=2, bidirectional=True, batch_first=True)
         self.dropout = nn.Dropout(p=0.1)
         self.linear = nn.Linear(hidden_dim, self.tagset_size)
-        #self.crf = CRF(self.tagset_size, batch_first=True)
         self.crf = CRF(self.tagset_size)
     
     def _get_features(self, sentence): # sentence：{batch_size,seq_Len}
@@ -42,16 +41,13 @@ class Bert_BiLSTM_CRF(nn.Module):
             return decode
 
 
-
-
 class Bert_CRF(nn.Module):
 
-    def __init__(self, tag_to_ix, embedding_dim=768, hidden_dim=256):
+    def __init__(self, tag_to_ix, embedding_dim=768):
         super(Bert_CRF, self).__init__()
         self.model_name = "Bert_CRF"
         self.tag_to_ix = tag_to_ix
         self.tagset_size = len(self.tag_to_ix)
-        self.hidden_dim = hidden_dim
         self.embedding_dim = embedding_dim
 
         self.bert = BertModel.from_pretrained('bert-base-chinese')
